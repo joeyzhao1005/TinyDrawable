@@ -10,6 +10,7 @@ import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
 
 import com.kit.utils.ApiLevel;
+import com.kit.utils.DensityUtils;
 import com.kit.utils.ValueOf;
 
 import java.lang.annotation.Retention;
@@ -20,11 +21,17 @@ import static android.graphics.drawable.GradientDrawable.OVAL;
 import static android.graphics.drawable.GradientDrawable.RECTANGLE;
 import static android.graphics.drawable.GradientDrawable.RING;
 
+/**
+ * @author Zhao
+ */
 @SuppressWarnings("AlibabaAvoidDoubleOrFloatEqualCompare")
 public class TinyDrawable {
-    private static LruCache<String, Drawable> drawableLruCache;
+    private volatile static LruCache<String, Drawable> drawableLruCache;
 
     public static void init(int size) {
+        if (drawableLruCache != null) {
+            return;
+        }
         if (size > 0) {
             drawableLruCache = new LruCache<>(size);
         } else {
@@ -32,12 +39,15 @@ public class TinyDrawable {
         }
     }
 
-    public TinyDrawable setup() {
+    public static TinyDrawable setup() {
+        if (drawableLruCache == null) {
+            init(30);
+        }
         return new TinyDrawable();
     }
 
 
-    public Drawable create() {
+    public Drawable get() {
         String solidStr = "";
         if (colorStateList != null) {
             solidStr = colorStateList.toString();
@@ -72,6 +82,13 @@ public class TinyDrawable {
             return saved;
         } else {
             GradientDrawable drawable = new GradientDrawable();
+            if (width <= 0) {
+                width = DensityUtils.dip2px(20);
+            }
+
+            if (height <= 0) {
+                height = DensityUtils.dip2px(20);
+            }
             //设置圆环宽高
             drawable.setSize(width, height);
 
@@ -150,7 +167,7 @@ public class TinyDrawable {
     }
 
 
-    private int shape;
+    private int shape = RECTANGLE;
     private int solid;
     private int stroke;
     private int strokeColor;
