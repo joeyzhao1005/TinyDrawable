@@ -1,0 +1,40 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+dependencies {
+    implementation fileTree(include: '*.jar', dir: 'libs')
+//    implementation "androidx.appcompat:appcompat:${android_x_appcompat}"
+    implementation "androidx.annotation:annotation:${android_x_annotation}"
+
+    implementation project(':ZUtils')
+}
+
+android {
+    compileSdkVersion 29
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 29
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    sourceSets {
+    }
+
+    flavorDimensions "default"
+
+
+    buildTypes {
+        debug {}
+        prePublish {}
+        release {}
+    }
+}
+
+repositories {
+    mavenCentral()
+}
