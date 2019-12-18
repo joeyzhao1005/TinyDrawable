@@ -6,8 +6,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
-import android.view.View;
-import android.widget.TextView;
 
 import com.kit.utils.DensityUtils;
 
