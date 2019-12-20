@@ -1,6 +1,7 @@
 package com.kit.tinydrawable;
 
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -20,11 +21,6 @@ import com.kit.utils.log.Zog;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
-
-import static android.graphics.drawable.GradientDrawable.LINE;
-import static android.graphics.drawable.GradientDrawable.OVAL;
-import static android.graphics.drawable.GradientDrawable.RECTANGLE;
-import static android.graphics.drawable.GradientDrawable.RING;
 
 /**
  * @author Zhao
@@ -50,9 +46,13 @@ public class TinyDrawable {
         return new TinyDrawable();
     }
 
-
     @NonNull
     public Drawable get() {
+        return get(false);
+    }
+
+    @NonNull
+    public Drawable get(boolean noCache) {
         String solidStr;
         if (colorStateList != null) {
             solidStr = colorStateList.toString();
@@ -82,36 +82,43 @@ public class TinyDrawable {
         String key = shape + solidStr + stroke + strokeColor + radiiStr;
 
         Drawable saved = drawableLruCache.get(key);
-        if (saved != null) {
+        if (saved != null && !noCache) {
             return saved;
         } else {
             Drawable drawable;
             if (ripple) {
-                if (colorStateList != null) {
-                    Zog.d("You better set colorStateList first !");
-                    if (solid != 0) {
-                        int pressed = DarkMode.isDarkMode() ? ColorUtils.getLighterColor(solid, 0.1f) : ColorUtils.getDarkerColor(solid, 0.1f);
-                        colorStateList = ColorUtils.createColorStateList(solid, pressed, pressed, solid);
-                    }
-                }
                 if (ApiLevel.ATLEAST_LOLLIPOP) {
+                    Drawable mask = getDrawable(Color.BLACK);
+                    Drawable content = getDrawable();
                     if (colorStateList == null) {
-                        throw new IllegalArgumentException("You need set colorStateList first !");
+                        Zog.d("You better set colorStateList first !");
+                        if (rippleColor != 0) {
+                            colorStateList = ColorUtils.createColorStateList(solid, rippleColor, rippleColor, solid);
+                        } else {
+                            int pressed = DarkMode.isDarkMode() ? ColorUtils.getLighterColor(solid, 0.1f) : ColorUtils.getDarkerColor(solid, 0.1f);
+                            colorStateList = ColorUtils.createColorStateList(solid, pressed, pressed, solid);
+                        }
                     }
-                    drawable = new RippleDrawable(colorStateList, getDrawable(), getDrawable());
+                    drawable = new RippleDrawable(colorStateList, content, mask);
                 } else {
                     drawable = getDrawable();
                 }
             } else {
                 drawable = getDrawable();
             }
-            drawableLruCache.put(key, drawable);
+            if (!noCache) {
+                drawableLruCache.put(key, drawable);
+            }
             return drawable;
 
         }
     }
 
     private Drawable getDrawable() {
+        return getDrawable(solid);
+    }
+
+    private Drawable getDrawable(int drawableColor) {
         GradientDrawable drawable = new GradientDrawable();
         if (width <= 0) {
             width = DensityUtils.dip2px(20);
@@ -130,7 +137,7 @@ public class TinyDrawable {
         if (colorStateList != null && ApiLevel.ATLEAST_LOLLIPOP) {
             drawable.setColor(colorStateList);
         } else {
-            drawable.setColor(solid);
+            drawable.setColor(drawableColor);
         }
 
         //设置圆环宽度以及颜色
@@ -149,19 +156,20 @@ public class TinyDrawable {
     }
 
 
-    public TinyDrawable ripple(boolean ripple) {
-        this.ripple = ripple;
+    public TinyDrawable rippleColor(int rippleColor) {
+        this.ripple = true;
+        this.rippleColor = rippleColor;
         return this;
     }
 
 
-    public TinyDrawable setCornerRadii(@Nullable float[] radii) {
+    public TinyDrawable cornerRadii(@Nullable float[] radii) {
         this.radii = radii;
         return this;
     }
 
 
-    public TinyDrawable setCornerRadius(float radius) {
+    public TinyDrawable cornerRadius(float radius) {
         this.radius = radius;
         return this;
     }
@@ -211,7 +219,28 @@ public class TinyDrawable {
     private float[] radii;
     private float radius;
     private boolean ripple;
+    private int rippleColor;
 
+
+    /**
+     * Shape is a rectangle, possibly with rounded corners
+     */
+    public static final int RECTANGLE = 0;
+
+    /**
+     * Shape is an ellipse
+     */
+    public static final int OVAL = 1;
+
+    /**
+     * Shape is a line
+     */
+    public static final int LINE = 2;
+
+    /**
+     * Shape is a ring.
+     */
+    public static final int RING = 3;
 
     @IntDef({RECTANGLE, OVAL, LINE, RING})
     @Retention(RetentionPolicy.SOURCE)
