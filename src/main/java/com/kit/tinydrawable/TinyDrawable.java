@@ -6,8 +6,11 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.util.LruCache;
+import android.view.View;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.ColorRes;
+import androidx.annotation.DimenRes;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,6 +19,7 @@ import com.kit.utils.ApiLevel;
 import com.kit.utils.ColorUtils;
 import com.kit.utils.DarkMode;
 import com.kit.utils.DensityUtils;
+import com.kit.utils.ResWrapper;
 import com.kit.utils.ValueOf;
 import com.kit.utils.log.Zog;
 
@@ -23,6 +27,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 /**
+ * TinyDrawable
+ * 用来代码替代 原本 需要xml编码的资源文件
+ * 使用LRU管理
+ *
  * @author Zhao
  */
 public class TinyDrawable {
@@ -53,11 +61,65 @@ public class TinyDrawable {
 
     @NonNull
     public Drawable get(boolean noCache) {
+        if (width <= 0) {
+            width = DensityUtils.dip2px(20);
+        }
+
+        if (height <= 0) {
+            height = DensityUtils.dip2px(20);
+        }
+
+        if (ripple) {
+            noCache = true;
+        }
+
+        String key = getFullKey();
+
+        Drawable saved = drawableLruCache.get(key);
+        if (!noCache && saved != null) {
+            return saved;
+        } else {
+            Drawable drawable;
+            if (ripple) {
+                if (ApiLevel.ATLEAST_LOLLIPOP) {
+                    Drawable mask = getDrawable(Color.BLACK, noCache);
+                    Drawable content = getDrawable(noCache);
+                    if (colorStateList == null) {
+                        Zog.d("You better set colorStateList first !");
+                        if (rippleColor != 0) {
+                            colorStateList = ColorUtils.createColorStateList(color, rippleColor, rippleColor, color);
+                        } else {
+                            int pressed = DarkMode.isDarkMode() ? ColorUtils.getLighterColor(color, 0.1f) : ColorUtils.getDarkerColor(color, 0.1f);
+                            colorStateList = ColorUtils.createColorStateList(color, pressed, pressed, color);
+                        }
+                    }
+                    drawable = new RippleDrawable(colorStateList, content, mask);
+                } else {
+                    drawable = getDrawable(noCache);
+                }
+            } else {
+                drawable = getDrawable(noCache);
+            }
+            if (!noCache) {
+                drawableLruCache.put(key, drawable);
+            }
+            return drawable;
+
+        }
+    }
+
+
+    private String getFullKey() {
+        return getNoRippleKey(color) + rippleColor;
+    }
+
+
+    private String getNoRippleKey(int drawableColor) {
         String solidStr;
         if (colorStateList != null) {
             solidStr = colorStateList.toString();
         } else {
-            solidStr = ValueOf.toString(solid);
+            solidStr = ValueOf.toString(drawableColor);
         }
 
         StringBuilder radiiStr = new StringBuilder();
@@ -76,57 +138,30 @@ public class TinyDrawable {
             }
 
         } else {
-            solidStr = ValueOf.toString(radius);
+            radiiStr.append(ValueOf.toString(radius));
         }
 
-        String key = shape + solidStr + stroke + strokeColor + radiiStr;
+        return shape + solidStr + stroke + strokeColor + radiiStr;
+    }
 
+
+    private Drawable getDrawable(boolean noCache) {
+        return getDrawable(color, noCache);
+    }
+
+    private Drawable getDrawable(int drawableColor, boolean noCache) {
+        String key = getNoRippleKey(drawableColor);
         Drawable saved = drawableLruCache.get(key);
-        if (saved != null && !noCache) {
+        if (!noCache && saved != null) {
             return saved;
         } else {
-            Drawable drawable;
-            if (ripple) {
-                if (ApiLevel.ATLEAST_LOLLIPOP) {
-                    Drawable mask = getDrawable(Color.BLACK);
-                    Drawable content = getDrawable();
-                    if (colorStateList == null) {
-                        Zog.d("You better set colorStateList first !");
-                        if (rippleColor != 0) {
-                            colorStateList = ColorUtils.createColorStateList(solid, rippleColor, rippleColor, solid);
-                        } else {
-                            int pressed = DarkMode.isDarkMode() ? ColorUtils.getLighterColor(solid, 0.1f) : ColorUtils.getDarkerColor(solid, 0.1f);
-                            colorStateList = ColorUtils.createColorStateList(solid, pressed, pressed, solid);
-                        }
-                    }
-                    drawable = new RippleDrawable(colorStateList, content, mask);
-                } else {
-                    drawable = getDrawable();
-                }
-            } else {
-                drawable = getDrawable();
-            }
-            if (!noCache) {
-                drawableLruCache.put(key, drawable);
-            }
-            return drawable;
-
+            return createDrawable(key, drawableColor, noCache);
         }
     }
 
-    private Drawable getDrawable() {
-        return getDrawable(solid);
-    }
-
-    private Drawable getDrawable(int drawableColor) {
+    private Drawable createDrawable(String key, int drawableColor, boolean noCache) {
         GradientDrawable drawable = new GradientDrawable();
-        if (width <= 0) {
-            width = DensityUtils.dip2px(20);
-        }
 
-        if (height <= 0) {
-            height = DensityUtils.dip2px(20);
-        }
         //设置圆环宽高
         drawable.setSize(width, height);
 
@@ -152,11 +187,35 @@ public class TinyDrawable {
 
         //设置圆环中心点位置
 //        drawable.setGradientCenter(100, 200);
+
+        if (!noCache) {
+            drawableLruCache.put(key, drawable);
+        }
+
         return drawable;
     }
 
 
-    public TinyDrawable rippleColor(int rippleColor) {
+    /**
+     * ripple
+     *
+     * @param rippleColorResId ripple 颜色
+     * @return
+     */
+    public TinyDrawable rippleColorResId(@ColorRes int rippleColorResId) {
+        this.ripple = true;
+        this.rippleColor = ResWrapper.getColor(rippleColorResId);
+        return this;
+    }
+
+
+    /**
+     * ripple
+     *
+     * @param rippleColor ripple 颜色
+     * @return
+     */
+    public TinyDrawable rippleColor(@ColorInt int rippleColor) {
         this.ripple = true;
         this.rippleColor = rippleColor;
         return this;
@@ -168,17 +227,69 @@ public class TinyDrawable {
         return this;
     }
 
+    /**
+     * 圆角
+     *
+     * @param radiusDimenResId 圆角dimen id
+     * @return
+     */
+    public TinyDrawable cornerRadius(@DimenRes int radiusDimenResId) {
+        this.radius = ResWrapper.getDimension(radiusDimenResId);
+        return this;
+    }
 
+
+    /**
+     * 圆角
+     *
+     * @param radius 圆角
+     * @return
+     */
     public TinyDrawable cornerRadius(float radius) {
         this.radius = radius;
         return this;
     }
 
+    /**
+     * 边框颜色
+     *
+     * @param strokeColorId 边框颜色资源id
+     * @return
+     */
+    public TinyDrawable strokeColorResId(@ColorRes int strokeColorId) {
+        this.strokeColor = ResWrapper.getColor(strokeColorId);
+        return this;
+    }
+
+    /**
+     * 边框颜色
+     *
+     * @param strokeColor 边框颜色
+     * @return
+     */
     public TinyDrawable strokeColor(@ColorInt int strokeColor) {
         this.strokeColor = strokeColor;
         return this;
     }
 
+
+    /**
+     * 边框宽度
+     *
+     * @param stroke 边框宽度
+     * @return
+     */
+    public TinyDrawable strokeResId(@DimenRes int stroke) {
+        this.stroke = ValueOf.toInt(ResWrapper.getDimension(stroke));
+        return this;
+    }
+
+    /**
+     * 边框宽度
+     *
+     * @param stroke 边框宽度
+     * @return
+     */
     public TinyDrawable stroke(int stroke) {
         this.stroke = stroke;
         return this;
@@ -189,8 +300,26 @@ public class TinyDrawable {
         return this;
     }
 
-    public TinyDrawable solid(@ColorInt int solid) {
-        this.solid = solid;
+
+    /**
+     * 填充色
+     *
+     * @param colorResId 填充色资源id
+     * @return
+     */
+    public TinyDrawable colorResId(@ColorRes int colorResId) {
+        this.color = ResWrapper.getColor(colorResId);
+        return this;
+    }
+
+    /**
+     * 填充色
+     *
+     * @param solid 填充色
+     * @return
+     */
+    public TinyDrawable color(@ColorInt int solid) {
+        this.color = solid;
         return this;
     }
 
@@ -209,8 +338,15 @@ public class TinyDrawable {
         return this;
     }
 
+    public TinyDrawable attach(View view) {
+        this.width = view.getMeasuredWidth();
+        this.height = view.getMeasuredHeight();
+        return this;
+    }
+
+
     private int shape = RECTANGLE;
-    private int solid;
+    private int color;
     private int stroke;
     private int strokeColor;
     private int width, height;
