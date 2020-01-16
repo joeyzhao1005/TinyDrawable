@@ -227,6 +227,7 @@ public class TinyDrawable {
         return this;
     }
 
+
     /**
      * 圆角
      *
@@ -322,6 +323,7 @@ public class TinyDrawable {
         this.color = solid;
         return this;
     }
+
 
     public TinyDrawable shape(@Shape int shape) {
         this.shape = shape;
