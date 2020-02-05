@@ -100,6 +100,8 @@ public class TinyDrawable {
             } else {
                 drawable = getDrawable(noCache);
             }
+
+
             if (!noCache) {
                 drawableLruCache.put(key, drawable);
             }
@@ -141,7 +143,7 @@ public class TinyDrawable {
             radiiStr.append(ValueOf.toString(radius));
         }
 
-        return shape + solidStr + stroke + strokeColor + radiiStr;
+        return ValueOf.toString(alpha) + shape + solidStr + stroke + strokeColor + radiiStr;
     }
 
 
@@ -188,9 +190,12 @@ public class TinyDrawable {
         //设置圆环中心点位置
 //        drawable.setGradientCenter(100, 200);
 
+        drawable.setAlpha(alpha);
+
         if (!noCache) {
             drawableLruCache.put(key, drawable);
         }
+
 
         return drawable;
     }
@@ -313,6 +318,17 @@ public class TinyDrawable {
         return this;
     }
 
+
+    /**
+     * 填充色
+     *
+     * @return
+     */
+    public TinyDrawable alpha(int alpha) {
+        this.alpha = alpha;
+        return this;
+    }
+
     /**
      * 填充色
      *
@@ -348,6 +364,7 @@ public class TinyDrawable {
 
 
     private int shape = RECTANGLE;
+    private int alpha = 255;
     private int color;
     private int stroke;
     private int strokeColor;
