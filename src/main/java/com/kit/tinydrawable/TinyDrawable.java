@@ -2,6 +2,7 @@ package com.kit.tinydrawable;
 
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -25,6 +26,7 @@ import com.kit.utils.log.Zog;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.ref.WeakReference;
 
 /**
  * TinyDrawable
@@ -34,7 +36,7 @@ import java.lang.annotation.RetentionPolicy;
  * @author Zhao
  */
 public class TinyDrawable {
-    private volatile static LruCache<String, Drawable> drawableLruCache;
+    private volatile static LruCache<String, WeakReference<Drawable>> drawableLruCache;
 
     public static void init(int size) {
         if (drawableLruCache != null) {
@@ -75,7 +77,12 @@ public class TinyDrawable {
 
         String key = getFullKey();
 
-        Drawable saved = drawableLruCache.get(key);
+        WeakReference<Drawable> cached = drawableLruCache.get(key);
+        Drawable saved = null;
+        if (cached != null) {
+            saved = cached.get();
+        }
+
         if (!noCache && saved != null) {
             return saved;
         } else {
@@ -102,10 +109,14 @@ public class TinyDrawable {
             }
 
 
-            if (!noCache) {
-                drawableLruCache.put(key, drawable);
+            if (!noCache && drawable != null) {
+                drawableLruCache.put(key, new WeakReference<>(drawable));
             }
-            return drawable;
+            if (drawable != null) {
+                return drawable;
+            } else {
+                return new ColorDrawable(Color.TRANSPARENT);
+            }
 
         }
     }
@@ -153,7 +164,13 @@ public class TinyDrawable {
 
     private Drawable getDrawable(int drawableColor, boolean noCache) {
         String key = getNoRippleKey(drawableColor);
-        Drawable saved = drawableLruCache.get(key);
+
+        WeakReference<Drawable> cached = drawableLruCache.get(key);
+        Drawable saved = null;
+        if (cached != null) {
+            saved = cached.get();
+        }
+
         if (!noCache && saved != null) {
             return saved;
         } else {
@@ -193,7 +210,7 @@ public class TinyDrawable {
         drawable.setAlpha(alpha);
 
         if (!noCache) {
-            drawableLruCache.put(key, drawable);
+            drawableLruCache.put(key, new WeakReference<>(drawable));
         }
 
 
