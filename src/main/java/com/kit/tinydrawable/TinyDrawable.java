@@ -96,7 +96,7 @@ public class TinyDrawable {
                         if (rippleColor != 0) {
                             colorStateList = ColorUtils.createColorStateList(color, rippleColor, rippleColor, color);
                         } else {
-                            int pressed = darkMode || DarkMode.isDarkMode() ? ColorUtils.getDarkerColor(color, 0.1f) : ColorUtils.getLighterColor(color, 0.1f);
+                            int pressed = darkMode ? ColorUtils.getDarkerColor(color, 0.1f) : ColorUtils.getLighterColor(color, 0.1f);
                             colorStateList = ColorUtils.createColorStateList(color, pressed, pressed, color);
                         }
                     }
