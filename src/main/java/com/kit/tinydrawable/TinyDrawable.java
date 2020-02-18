@@ -96,7 +96,7 @@ public class TinyDrawable {
                         if (rippleColor != 0) {
                             colorStateList = ColorUtils.createColorStateList(color, rippleColor, rippleColor, color);
                         } else {
-                            int pressed = DarkMode.isDarkMode() ? ColorUtils.getLighterColor(color, 0.1f) : ColorUtils.getDarkerColor(color, 0.1f);
+                            int pressed = darkMode || DarkMode.isDarkMode() ? ColorUtils.getDarkerColor(color, 0.1f) : ColorUtils.getLighterColor(color, 0.1f);
                             colorStateList = ColorUtils.createColorStateList(color, pressed, pressed, color);
                         }
                     }
@@ -230,6 +230,16 @@ public class TinyDrawable {
         return this;
     }
 
+    /**
+     * ripple
+     *
+     * @param darkMode 深色模式
+     * @return
+     */
+    public TinyDrawable darkMode(boolean darkMode) {
+        this.darkMode = darkMode;
+        return this;
+    }
 
     /**
      * ripple
@@ -393,6 +403,7 @@ public class TinyDrawable {
     private boolean ripple;
     private int rippleColor;
 
+    private boolean darkMode;
 
     /**
      * Shape is a rectangle, possibly with rounded corners
